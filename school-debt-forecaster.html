@@ -426,37 +426,102 @@ function st(m,c='var(--core-green-lt)'){const e=document.getElementById('pst');e
 function cdt(raw){const s=(raw||'').toLowerCase();if(s.includes('lease'))return'Lease';if(s.includes('revenue'))return'Revenue Bond';if(s.includes('note')||s.includes('promissory'))return'Note';if(s.includes('general obligation')||s.includes('go bond'))return'GO Bond';return raw||'GO Bond';}
 
 function parseF(file){
-  st('Reading file…');
+  st('Reading file\u2026');
   const r=new FileReader();
   r.onload=e=>{
     try{
-      const txt=e.target.result,lines=txt.split(/\r?\n/).filter(l=>l.trim());
+      const txt=e.target.result;
+      const lines=txt.split(/\r?\n/).filter(l=>l.trim());
       if(lines.length<2){st('File appears empty.','#d97706');return;}
-      const dl=lines[0].includes('|')?'|':',';
-      const cols=lines[0].split(dl).map(c=>c.trim().replace(/^["']|["']$/g,'').toLowerCase());
-      st(`Detected ${cols.length} columns, ${lines.length-1} rows. Parsing…`);
-      const ci=name=>{const v={unit_id:['unitid','unit_id'],unit_name:['unitname','unit_name','unitdesc'],county:['county','countyname'],unit_type:['unittype','unit_type'],debt_id:['debtid','debt_id'],description:['debtdescription','description','desc'],debt_type:['debttype','type'],issue_date:['issuedate','issued_date'],maturity_date:['maturitydate','finalmaturity','duedate'],original_amt:['originalamount','facevalue'],interest_rate:['interestrate','rate'],end_balance:['endingbalance','endbalance'],total_payment:['totalpayment','annualpayment','payment']}[name]||[name];for(const x of v){const i=cols.indexOf(x);if(i>=0)return i;}return -1;};
-      const get=(row,n)=>{const i=ci(n);return i>=0?(row[i]||'').trim().replace(/^["']|["']$/g,''):''};
-      const pd=s=>parseFloat((s||'').replace(/[\$,]/g,'').replace(/^\((.*)\)$/,'$1').replace(/[^0-9.\-]/g,''))||0;
-      const pr=s=>{if(!s)return 0;const v=parseFloat(s.replace('%','').trim())||0;return v>1?v/100:v;};
+      const dl='|';
+      const cols=lines[0].split(dl).map(c=>c.trim().toLowerCase());
+      st('Detected '+cols.length+' columns, '+(lines.length-1)+' rows. Parsing\u2026');
+
+      // Real Gateway AFR Debt column map
+      const COLMAP={
+        year:           ['year'],
+        county:         ['cnty_description','county','countyname'],
+        unit_type_code: ['budget_unit_type'],
+        unit_code:      ['unit_code','unit_cd','unitid'],
+        unit_name:      ['unit_name','unitname','unitdesc'],
+        debt_class_code:['debt_class_code'],
+        debt_class_name:['debt_class_name','debttype','type'],
+        debt_desc:      ['debt_description','description','debtdescription','desc'],
+        end_balance:    ['end_principal_bal','endingbalance','end_balance','endbalance'],
+        payment_1yr:    ['principal_amt_due_1yr','totalpayment','annualpayment','payment'],
+        interest_rate:  ['interest_rate','interestrate','rate'],
+        issue_date:     ['issue_date','issuedate'],
+        maturity_date:  ['maturity_date','maturitydate','finalmaturity','duedate'],
+        original_amt:   ['original_principal_amt','originalamount','facevalue'],
+      };
+      const ci={};
+      for(const[k,variants] of Object.entries(COLMAP)){
+        ci[k]=-1;
+        for(const v of variants){const idx=cols.indexOf(v);if(idx>=0){ci[k]=idx;break;}}
+      }
+      console.log('Gateway columns found:',Object.fromEntries(Object.entries(ci).map(([k,i])=>[k,i>=0?cols[i]:'MISSING'])));
+
+      const get=(row,key)=>{const i=ci[key];return(i>=0&&i<row.length)?(row[i]||'').trim():'';};
+      const pd=s=>parseFloat((s||'').replace(/[\$,]/g,'').replace(/^\((.*)\)$/,'$1'))||0;
+      const pr=s=>{if(!s)return 0;const v=parseFloat((s||'').replace('%',''))||0;return v>1?v/100:v;};
       const py=s=>{const m=(s||'').match(/(\d{4})/);return m?parseInt(m[1]):null;};
-      const dm={};let sk=0;
+
+      const classifyType=(code,name)=>{
+        const c=parseInt(code)||0;
+        const n=(name||'').toLowerCase();
+        if(c===1||n.includes('general obligation')||n.includes('g.o.')) return 'GO Bond';
+        if(c===3||n.includes('lease')) return 'Lease';
+        if(c===2||n.includes('revenue')) return 'Revenue Bond';
+        if(n.includes('note')||n.includes('promissory')) return 'Note';
+        if(n.includes('line of credit')) return 'Line of Credit';
+        return name||'Other';
+      };
+
+      const dm={};
+      let sk=0;
+
       for(let i=1;i<lines.length;i++){
         const row=lines[i].split(dl);
-        const ut=get(row,'unit_type').toLowerCase();if(ut&&!ut.includes('school')){sk++;continue;}
-        const uid=get(row,'unit_id')||`r${i}`,name=get(row,'unit_name')||'Unknown',county=get(row,'county')||'';
-        if(!dm[uid])dm[uid]={id:uid,name,county,totalAV:0,debtServiceRate:0,bonds:[]};
-        const bid=get(row,'debt_id')||`${uid}-${dm[uid].bonds.length+1}`;
-        const bond={id:bid,description:get(row,'description')||'Bond',debtType:cdt(get(row,'debt_type')),issued:py(get(row,'issue_date')),maturity:py(get(row,'maturity_date')),originalAmount:pd(get(row,'original_amt')),interestRate:pr(get(row,'interest_rate')),endingBalance:pd(get(row,'end_balance')),totalPayment:pd(get(row,'total_payment'))};
-        const ex=dm[uid].bonds.findIndex(b=>b.id===bid);
-        if(ex>=0){if(bond.endingBalance>=(dm[uid].bonds[ex].endingBalance||0))dm[uid].bonds[ex]=bond;}else dm[uid].bonds.push(bond);
+        if(row.length<3) continue;
+        // budget_unit_type === '4' means School
+        const utc=get(row,'unit_type_code');
+        if(utc&&utc!=='4'){sk++;continue;}
+        const yr      =get(row,'year');
+        const uid     =get(row,'unit_code')||('r'+i);
+        const name    =get(row,'unit_name')||'Unknown';
+        const county  =get(row,'county')||'';
+        const dclass  =get(row,'debt_class_code');
+        const dname   =get(row,'debt_class_name');
+        const ddesc   =get(row,'debt_desc')||'Bond';
+        const endBal  =pd(get(row,'end_balance'));
+        const payment =pd(get(row,'payment_1yr'));
+        const rate    =pr(get(row,'interest_rate'));
+        const issued  =py(get(row,'issue_date'));
+        const maturity=py(get(row,'maturity_date'));
+        const origAmt =pd(get(row,'original_amt'));
+        const debtType=classifyType(dclass,dname);
+
+        if(!dm[uid]) dm[uid]={id:uid,name,county,totalAV:0,debtServiceRate:0,bonds:[]};
+
+        // Bond identity = district + description (bonds repeat per year; keep latest)
+        const bondKey=uid+'||'+ddesc;
+        const reportYr=parseInt(yr)||0;
+        const bond={id:bondKey,description:ddesc,debtType,issued,maturity,
+                    originalAmount:origAmt,interestRate:rate,
+                    endingBalance:endBal,totalPayment:payment,reportYear:reportYr};
+
+        const ex=dm[uid].bonds.findIndex(b=>b.id===bondKey);
+        if(ex>=0){if(reportYr>=(dm[uid].bonds[ex].reportYear||0)) dm[uid].bonds[ex]=bond;}
+        else dm[uid].bonds.push(bond);
       }
+
       const parsed=Object.values(dm).filter(d=>d.bonds.length>0);
-      if(!parsed.length){st('No school debt records found.','#d97706');return;}
+      if(!parsed.length){st('No school records found. Verify file is the AFR Debt download.','#d97706');return;}
       const tb=parsed.reduce((s,d)=>s+d.bonds.length,0);
       const gb=parsed.reduce((s,d)=>s+d.bonds.filter(b=>b.debtType==='GO Bond').length,0);
       const lb=parsed.reduce((s,d)=>s+d.bonds.filter(b=>b.debtType==='Lease').length,0);
-      st(`✓ ${parsed.length} districts · ${tb} instruments (${gb} GO Bonds · ${lb} Leases · ${sk} non-school skipped)`);
+      const rb=parsed.reduce((s,d)=>s+d.bonds.filter(b=>b.debtType==='Revenue Bond').length,0);
+      st('\u2713 '+parsed.length+' districts \u00b7 '+tb+' instruments ('+gb+' GO Bonds \u00b7 '+lb+' Leases \u00b7 '+rb+' Revenue \u00b7 '+sk+' non-school rows skipped)');
       ALL=parsed;SEL=null;buildCF();onSearch();renderOv();setTimeout(closeModal,2000);
     }catch(err){st('Parse error: '+err.message,'#cc3333');console.error(err);}
   };
