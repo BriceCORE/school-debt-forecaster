@@ -630,15 +630,42 @@ function applyAsm(){
 
 function sel(id){const d=ALL.find(x=>x.id===id);if(!d)return;SEL=id;renderSB();renderD(d);}
 
-function openModal(){document.getElementById('ov').classList.add('show');}
+function openModal(){document.getElementById('ov').classList.add('show');wireDz2();wireDz3();}
 function closeModal(){document.getElementById('ov').classList.remove('show');}
 function useSample(){ALL=SAMPLE;SEL=null;buildCF();onSearch();renderOv();closeModal();}
 
+// Debt file drop zone (dz)
 document.getElementById('dz').onclick=()=>document.getElementById('fi').click();
 document.getElementById('fi').onchange=e=>{if(e.target.files[0])parseF(e.target.files[0]);};
 document.getElementById('dz').ondragover=e=>{e.preventDefault();e.currentTarget.classList.add('over');};
 document.getElementById('dz').ondragleave=e=>e.currentTarget.classList.remove('over');
 document.getElementById('dz').ondrop=e=>{e.preventDefault();e.currentTarget.classList.remove('over');if(e.dataTransfer.files[0])parseF(e.dataTransfer.files[0]);};
+
+// Leases file drop zone (dz3) — wired after DOM ready
+function wireDz3(){
+  const dz3=document.getElementById('dz3');
+  const fi3=document.getElementById('fi3');
+  if(dz3&&fi3){
+    dz3.onclick=()=>fi3.click();
+    fi3.onchange=e=>{if(e.target.files[0])parseF(e.target.files[0]);};
+    dz3.ondragover=e=>{e.preventDefault();dz3.classList.add('over');};
+    dz3.ondragleave=()=>dz3.classList.remove('over');
+    dz3.ondrop=e=>{e.preventDefault();dz3.classList.remove('over');if(e.dataTransfer.files[0])parseF(e.dataTransfer.files[0]);};
+  }
+}
+
+// Budget/CNAV drop zone (dz2) — wired after DOM ready
+function wireDz2(){
+  const dz2=document.getElementById('dz2');
+  const fi2=document.getElementById('fi2');
+  if(dz2&&fi2){
+    dz2.onclick=()=>fi2.click();
+    fi2.onchange=e=>{if(e.target.files[0])parseCNAV(e.target.files[0]);};
+    dz2.ondragover=e=>{e.preventDefault();dz2.classList.add('over');};
+    dz2.ondragleave=()=>dz2.classList.remove('over');
+    dz2.ondrop=e=>{e.preventDefault();dz2.classList.remove('over');if(e.dataTransfer.files[0])parseCNAV(e.dataTransfer.files[0]);};
+  }
+}
 
 function st(m,c='var(--core-green-lt)'){const e=document.getElementById('pst');e.style.color=c;e.textContent=m;}
 
@@ -951,7 +978,7 @@ function parseCNAV(file){
   r.readAsText(file);
 }
 
-buildCF();renderSB();renderOv();
+buildCF();renderSB();renderOv();wireDz2();wireDz3();
 </script>
 </body>
 </html>
