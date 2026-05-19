@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indiana School Debt Forecaster | CORE Construction</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --core-green:#008348; --core-green-dk:#006836; --core-green-lt:#A5CCB7; --core-green-pale:#e8f3ed;
+    --core-black:#000000; --asphalt:#282828; --asphalt-mid:#333333; --asphalt-lt:#4a4a4a;
+    --concrete:#F2F3F3; --white:#FFFFFF;
+    --border:rgba(255,255,255,0.08); --text-dim:#8a8a8a; --text-mid:#b8b8b8;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:var(--asphalt);color:var(--white);font-size:14px;line-height:1.5;overflow:hidden}
+  .shell{display:grid;grid-template-rows:54px 1fr;height:100vh}
+  /* TOPBAR */
+  .topbar{background:var(--core-black);border-bottom:3px solid var(--core-green);display:flex;align-items:center;padding:0 18px;gap:14px}
+  .logo-wrap{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .logo-svg{width:96px;height:27px}
+  .topbar-div{width:1px;height:22px;background:#444}
+  .app-name{font-size:12px;font-weight:700;color:var(--concrete);letter-spacing:.06em;text-transform:uppercase}
+  .ctrl-area{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .ci{background:var(--asphalt);border:1px solid #4a4a4a;border-radius:3px;color:var(--white);font-family:'Segoe UI',sans-serif;font-size:13px;padding:5px 10px;outline:none;transition:border-color .15s}
+  .ci::placeholder{color:var(--text-dim)} .ci:focus{border-color:var(--core-green)}
+  #searchInput{width:220px}
+  .cs{background:var(--asphalt);border:1px solid #4a4a4a;border-radius:3px;color:var(--text-mid);font-family:'Segoe UI',sans-serif;font-size:13px;padding:5px 8px;outline:none}
+  .up-btn{background:transparent;border:1px solid var(--core-green);border-radius:3px;color:var(--core-green-lt);font-family:'Segoe UI',sans-serif;font-size:11px;font-weight:700;letter-spacing:.05em;padding:5px 13px;cursor:pointer;text-transform:uppercase;transition:all .15s;white-space:nowrap}
+  .up-btn:hover{background:var(--core-green);color:var(--white)}
+  /* BODY */
+  .body{display:grid;grid-template-columns:262px 1fr;overflow:hidden;height:100%}
+  /* SIDEBAR */
+  .sidebar{background:var(--asphalt);border-right:1px solid rgba(0,131,72,.18);overflow-y:auto;display:flex;flex-direction:column;scrollbar-width:thin;scrollbar-color:#4a4a4a transparent}
+  .sidebar::-webkit-scrollbar{width:4px} .sidebar::-webkit-scrollbar-thumb{background:#4a4a4a;border-radius:4px}
+  .sb-head{background:var(--core-black);padding:9px 14px;font-size:10px;font-weight:700;color:var(--core-green);letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid rgba(0,131,72,.2)}
+  .fb{padding:9px 14px 5px} .fl{font-size:10px;font-weight:700;color:var(--text-dim);letter-spacing:.06em;margin-bottom:4px;text-transform:uppercase}
+  .fsel{background:#3a3a3a;border:1px solid #4a4a4a;border-radius:3px;color:var(--text-mid);font-size:12px;padding:4px 8px;width:100%;outline:none}
+  .chips{padding:0 14px 8px;display:flex;gap:5px;flex-wrap:wrap}
+  .chip{font-size:10px;font-weight:700;padding:3px 8px;border-radius:2px;cursor:pointer;border:1px solid #4a4a4a;background:#3a3a3a;color:var(--text-dim);letter-spacing:.03em;text-transform:uppercase;transition:all .12s}
+  .chip.on{background:var(--core-green);border-color:var(--core-green);color:var(--white)}
+  .dc{padding:5px 14px 2px;font-size:10px;color:var(--text-dim);letter-spacing:.03em}
+  .di{padding:10px 14px;cursor:pointer;border-left:3px solid transparent;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s,border-color .1s}
+  .di:hover{background:rgba(0,131,72,.06)} .di.on{border-left-color:var(--core-green);background:rgba(0,131,72,.10)}
+  .din{font-size:12px;font-weight:600;color:var(--white);display:flex;align-items:center;gap:7px;margin-bottom:3px}
+  .dim{font-size:11px;color:var(--text-dim);display:flex;gap:8px}
+  .pip{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .pr{background:#cc3333} .pa{background:#d97706} .pg{background:var(--core-green)} .px{background:#4a4a4a}
+  /* MAIN */
+  .main{overflow-y:auto;background:var(--asphalt);padding:20px;display:flex;flex-direction:column;gap:15px;scrollbar-width:thin;scrollbar-color:#4a4a4a transparent}
+  .main::-webkit-scrollbar{width:5px} .main::-webkit-scrollbar-thumb{background:#4a4a4a;border-radius:4px}
+  /* CARD */
+  .card{background:var(--asphalt-mid);border:1px solid rgba(255,255,255,.07);border-radius:4px;overflow:hidden}
+  .ch{background:var(--core-black);padding:9px 16px;border-bottom:2px solid var(--core-green);display:flex;align-items:center;justify-content:space-between}
+  .ct{font-size:10px;font-weight:700;color:var(--core-green);letter-spacing:.10em;text-transform:uppercase}
+  .cb{padding:16px}
+  /* METRICS */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
+  .met{background:var(--core-black);border:1px solid rgba(0,131,72,.2);border-top:3px solid var(--core-green);border-radius:3px;padding:13px 15px}
+  .ml{font-size:10px;font-weight:700;color:var(--core-green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+  .mv{font-size:21px;font-weight:700;line-height:1;color:var(--white)} .ms{font-size:10px;color:var(--text-dim);margin-top:4px}
+  .cg{color:var(--core-green-lt)} .ca{color:#d97706} .cr{color:#cc3333}
+  /* FORECAST BANNER */
+  .fb2{border-radius:3px;padding:15px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .fb2.ur{background:rgba(204,51,51,.08);border:1px solid rgba(204,51,51,.25);border-left:4px solid #cc3333}
+  .fb2.ua{background:rgba(217,119,6,.08);border:1px solid rgba(217,119,6,.25);border-left:4px solid #d97706}
+  .fb2.ug{background:rgba(0,131,72,.08);border:1px solid rgba(0,131,72,.25);border-left:4px solid var(--core-green)}
+  .fb2.ux{background:rgba(74,74,74,.15);border:1px solid rgba(74,74,74,.3);border-left:4px solid #4a4a4a}
+  .fcl{font-size:10px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+  .fcv{font-size:19px;font-weight:700} .fcs{font-size:10px;color:var(--text-dim);margin-top:2px}
+  /* TABLE */
+  .bt{width:100%;border-collapse:collapse}
+  .bt th{background:var(--core-black);font-size:10px;font-weight:700;color:var(--core-green);text-transform:uppercase;letter-spacing:.08em;padding:9px 11px;text-align:left;border-bottom:1px solid rgba(0,131,72,.3);white-space:nowrap}
+  .bt td{padding:9px 11px;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;color:var(--concrete)}
+  .bt tr:last-child td{border-bottom:none} .bt tr:hover td{background:rgba(0,131,72,.04)}
+  .bdg{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:2px;letter-spacing:.04em;text-transform:uppercase}
+  .ba{background:rgba(0,131,72,.15);color:var(--core-green-lt);border:1px solid rgba(0,131,72,.35)}
+  .bs{background:rgba(217,119,6,.15);color:#fbbf24;border:1px solid rgba(217,119,6,.35)}
+  .bx{background:rgba(74,74,74,.2);color:var(--text-dim);border:1px solid rgba(74,74,74,.3)}
+  .bg{background:rgba(0,131,72,.08);color:var(--core-green-lt);border:1px solid rgba(0,131,72,.2);font-size:9px}
+  .bl{background:rgba(255,255,255,.06);color:var(--text-mid);border:1px solid rgba(255,255,255,.12);font-size:9px}
+  /* TIMELINE */
+  .tlyr{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dim);margin-bottom:7px;padding:0 3px}
+  .tlrow{display:flex;align-items:center;gap:10px;margin-bottom:5px}
+  .tllbl{width:128px;font-size:11px;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
+  .tltr{flex:1;height:15px;background:rgba(255,255,255,.05);border-radius:2px;position:relative}
+  .tlbar{height:100%;border-radius:2px;position:absolute;min-width:3px}
+  .tlgo{background:linear-gradient(90deg,var(--core-green-dk),var(--core-green))}
+  .tlle{background:linear-gradient(90deg,#005a30,#008348,#5ab388)}
+  .tlfc{background:repeating-linear-gradient(90deg,rgba(0,131,72,.45) 0,rgba(0,131,72,.45) 5px,rgba(0,131,72,.15) 5px,rgba(0,131,72,.15) 9px);border:1px solid rgba(0,131,72,.5)}
+  .tlend{font-size:10px;color:var(--text-dim);width:34px;text-align:right;flex-shrink:0}
+  /* CHART */
+  .cw{position:relative;width:100%;height:196px}
+  .leg{display:flex;gap:14px;margin-top:9px;font-size:11px;color:var(--text-dim)}
+  .legit{display:flex;align-items:center;gap:5px}
+  .legsw{width:12px;height:10px;border-radius:2px}
+  /* WATCHLIST */
+  .wlr{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .1s}
+  .wlr:last-child{border-bottom:none} .wlr:hover{background:rgba(0,131,72,.06)}
+  .wln{font-size:13px;font-weight:600;color:var(--white);display:flex;align-items:center;gap:8px}
+  .wlm{font-size:11px;color:var(--text-dim);margin-top:2px}
+  .wlrt{text-align:right} .wly{font-size:17px;font-weight:700} .wlc{font-size:11px;color:var(--text-dim);margin-top:1px}
+  /* WAVE */
+  .wr{display:grid;grid-template-columns:54px 1fr 100px 95px;align-items:center;gap:11px;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+  .wr:last-child{border-bottom:none}
+  .wy{font-weight:700;font-size:13px;color:var(--core-green-lt)}
+  .wb{height:8px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden}
+  .wbf{height:100%;background:var(--core-green);border-radius:2px}
+  .wct{color:var(--text-dim);text-align:right} .wtt{color:var(--core-green-lt);font-weight:600;text-align:right}
+  /* DIST HEADER */
+  .dhr{display:flex;align-items:flex-start;justify-content:space-between}
+  .dtl{font-size:20px;font-weight:700;color:var(--white)} .dsu{font-size:12px;color:var(--text-dim);margin-top:3px}
+  .utag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:5px 12px;border-radius:2px;border:1px solid;white-space:nowrap;flex-shrink:0}
+  .ur2{color:#cc3333;border-color:rgba(204,51,51,.4);background:rgba(204,51,51,.08)}
+  .ua2{color:#d97706;border-color:rgba(217,119,6,.4);background:rgba(217,119,6,.08)}
+  .ug2{color:var(--core-green-lt);border-color:rgba(0,131,72,.4);background:rgba(0,131,72,.08)}
+  .ux2{color:var(--text-dim);border-color:rgba(74,74,74,.4);background:rgba(74,74,74,.08)}
+  /* ASSUMPTIONS */
+  .asmg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .asmi{background:var(--asphalt);border:1px solid #4a4a4a;border-radius:3px;padding:10px 12px}
+  .asmi label{font-size:10px;font-weight:700;color:var(--core-green);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+  .asmr{display:flex;align-items:center;gap:6px}
+  .asmin{flex:1;background:var(--core-black);border:1px solid #4a4a4a;border-radius:3px;color:var(--white);font-family:'Segoe UI',sans-serif;font-size:13px;font-weight:600;padding:4px 8px;outline:none;min-width:0;transition:border-color .15s}
+  .asmin:focus{border-color:var(--core-green)} .asmu{font-size:11px;color:var(--text-dim);white-space:nowrap}
+  .rbtn{background:var(--core-green);border:none;border-radius:3px;color:var(--white);font-family:'Segoe UI',sans-serif;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:8px 20px;cursor:pointer;margin-top:11px;transition:background .15s}
+  .rbtn:hover{background:var(--core-green-dk)}
+  /* INFO */
+  .ibox{background:rgba(0,131,72,.06);border:1px solid rgba(0,131,72,.2);border-left:4px solid var(--core-green);border-radius:3px;padding:12px 16px;font-size:12px;color:var(--text-mid);line-height:1.7}
+  .ibox strong{color:var(--core-green-lt);font-weight:600}
+  /* MODAL */
+  .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center}
+  .ov.show{display:flex}
+  .mod{background:var(--asphalt-mid);border:1px solid rgba(0,131,72,.35);border-top:4px solid var(--core-green);border-radius:4px;padding:26px 30px;width:500px;max-width:92vw}
+  .mod h2{font-size:13px;font-weight:700;color:var(--core-green-lt);letter-spacing:.08em;text-transform:uppercase;margin-bottom:11px}
+  .mod p{font-size:12px;color:var(--text-mid);line-height:1.7;margin-bottom:14px}
+  .mod code{background:var(--asphalt);border:1px solid #4a4a4a;border-radius:2px;font-size:11px;padding:1px 5px;color:var(--core-green-lt)}
+  .dz{border:2px dashed #4a4a4a;border-radius:4px;padding:26px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:12px}
+  .dz:hover,.dz.over{border-color:var(--core-green)}
+  .dzt{font-size:13px;color:var(--text-dim)} .dzt strong{color:var(--core-green-lt)}
+  .mact{display:flex;gap:10px;justify-content:flex-end;margin-top:11px}
+  .mbtn{background:transparent;border:1px solid #4a4a4a;border-radius:3px;color:var(--text-mid);font-family:'Segoe UI',sans-serif;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:7px 15px;cursor:pointer;transition:all .15s}
+  .mbtn:hover{border-color:var(--text-mid);color:var(--white)} .mbtn.pr2{background:var(--core-green);border-color:var(--core-green);color:var(--white)}
+  .mbtn.pr2:hover{background:var(--core-green-dk)}
+  .pst{font-size:11px;color:var(--core-green-lt);min-height:16px;margin-top:5px}
+  @media(max-width:900px){.metrics,.asmg{grid-template-columns:1fr 1fr}.fb2{grid-template-columns:1fr 1fr}}
+
+  /* ── Second file upload ── */
+  .upload-section{margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,131,72,.2)}
+  .upload-section h3{font-size:11px;font-weight:700;color:var(--core-green-lt);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+  .dz2{border:2px dashed #4a4a4a;border-radius:4px;padding:16px;text-align:center;cursor:pointer;transition:border-color .15s;margin-bottom:8px}
+  .dz2:hover,.dz2.over{border-color:var(--core-green)}
+  .dz2-text{font-size:12px;color:var(--text-dim)} .dz2-text strong{color:var(--core-green-lt)}
+  .pst2{font-size:11px;color:var(--core-green-lt);min-height:14px}
+
+  /* ── Detail layout ── */
+  .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .detail-grid .card{margin:0}
+  .detail-full{grid-column:1/-1}
+
+  /* ── Bond table scrollable ── */
+  .table-scroll{overflow-x:auto;max-height:340px;overflow-y:auto}
+  .table-scroll::-webkit-scrollbar{width:4px;height:4px}
+  .table-scroll::-webkit-scrollbar-thumb{background:#4a4a4a;border-radius:4px}
+  .bt thead th{position:sticky;top:0;z-index:2;background:var(--core-black)}
+
+  /* ── Per-bond year chart ── */
+  .chart-wrap-tall{position:relative;width:100%;height:280px}
+
+  /* ── Year breakdown table ── */
+  .yr-table{width:100%;border-collapse:collapse;font-size:12px}
+  .yr-table th{background:var(--core-black);font-size:10px;font-weight:700;color:var(--core-green);text-transform:uppercase;letter-spacing:.07em;padding:7px 10px;text-align:right;border-bottom:1px solid rgba(0,131,72,.3);white-space:nowrap}
+  .yr-table th:first-child{text-align:left}
+  .yr-table td{padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);text-align:right;color:var(--concrete)}
+  .yr-table td:first-child{text-align:left;color:var(--text-mid);font-weight:600}
+  .yr-table tr:last-child td{border-bottom:none}
+  .yr-table tr:hover td{background:rgba(0,131,72,.04)}
+  .yr-table .total-row td{color:var(--core-green-lt);font-weight:700;border-top:1px solid rgba(0,131,72,.3);background:rgba(0,131,72,.06)}
+  .yr-table .proj-row td{color:var(--text-dim);font-style:italic}
+
+  /* ── Forecast note ── */
+  .fc-note{font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.6;font-style:italic}
+</style>
+</head>
+<body>
+<div class="ov" id="ov">
+  <div class="mod">
+    <h2>Load Gateway Debt Data</h2>
+    <p>Download the <strong>Debt</strong> file from <a href="https://gateway.ifionline.org/public/download.aspx" target="_blank" style="color:var(--core-green-lt)">gateway.ifionline.org</a>:<br>
+    Annual Financial Reports → <strong>Debt</strong> → <strong>School</strong> → <strong>All</strong> years.<br><br>
+    File is pipe-delimited (<code>|</code>). All Indiana school corporations — GO Bonds, Lease Financing, Revenue Bonds, and Notes — load automatically.</p>
+    <p style="font-size:11px;color:var(--text-dim);margin-bottom:10px">Load one or both files — the app merges them automatically. Download from gateway.ifionline.org/public/download.aspx → Annual Financial Reports → School → All Years.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--core-green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px">Step 1 — Debt File <span style="color:var(--text-dim);font-weight:400">(required)</span></div>
+        <div class="dz" id="dz"><div class="dzt"><strong>Drop Debt file here</strong> or click<br><span style="font-size:11px">File: Debt · Unit: School · Year: All</span></div><input type="file" id="fi" accept=".txt,.csv" style="display:none"></div>
+        <div class="pst" id="pst"></div>
+      </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:var(--core-green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px">Step 2 — Leases File <span style="color:var(--text-dim);font-weight:400">(recommended)</span></div>
+        <div class="dz" id="dz3" style="border-color:rgba(0,131,72,.4)"><div class="dzt"><strong>Drop Leases file here</strong> or click<br><span style="font-size:11px">File: Leases · Unit: School · Year: All</span></div><input type="file" id="fi3" accept=".txt,.csv" style="display:none"></div>
+        <div class="pst2" id="pst3"></div>
+      </div>
+    </div>
+    <div class="upload-section">
+      <h3>Optional — Budget File (for AV &amp; Levy Rates)</h3>
+      <p style="font-size:11px;color:var(--text-dim);margin-bottom:8px">File: Budget Data · Unit: School · Year: All. Populates Net AV and Debt Service levy rate fields.</p>
+      <div class="dz2" id="dz2"><div class="dz2-text"><strong>Drop Budget file here</strong> or click</div><input type="file" id="fi2" accept=".txt,.csv" style="display:none"></div>
+      <div class="pst2" id="pst2"></div>
+    </div>
+    <div class="mact"><button class="mbtn" onclick="closeModal()">Cancel</button><button class="mbtn pr2" onclick="useSample()">Use sample data</button></div>
+  </div>
+</div>
+
+<div class="shell">
+  <div class="topbar">
+    <div class="logo-wrap"><img src="data:image/png;base64,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" alt="CORE Construction" style="height:36px;display:block"></div>
+    <div class="topbar-div"></div>
+    <div class="app-name">School Debt Forecaster</div>
+    <div class="ctrl-area">
+      <input class="ci" type="text" id="searchInput" placeholder="Search districts…" oninput="onSearch()">
+      <select class="cs" id="cf" onchange="onSearch()"><option value="">All Counties</option></select>
+      <select class="cs" id="wf" onchange="onSearch()"><option value="">All windows</option><option value="1">≤ 1 year</option><option value="3">≤ 3 years</option><option value="5">≤ 5 years</option></select>
+      <button class="up-btn" onclick="openModal()">↑ Load Gateway File</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="sidebar">
+      <div class="sb-head">School Districts</div>
+      <div class="fb"><div class="fl">County</div><select class="fsel" id="scf" onchange="onSearch()"><option value="">All Counties</option></select></div>
+      <div class="fb" style="padding-top:4px"><div class="fl">Window</div><select class="fsel" id="swf" onchange="onSearch()"><option value="">Any</option><option value="1">≤ 1 yr</option><option value="3">≤ 3 yr</option><option value="5">≤ 5 yr</option></select></div>
+      <div class="fb" style="padding-top:4px"><div class="fl">Debt type</div></div>
+      <div class="chips"><span class="chip on" data-t="all" onclick="setType(this)">All</span><span class="chip" data-t="GO Bond" onclick="setType(this)">GO Bond</span><span class="chip" data-t="Lease" onclick="setType(this)">Lease</span><span class="chip" data-t="Other" onclick="setType(this)">Other</span></div>
+      <div class="dc" id="dc"></div>
+      <div id="dl"></div>
+    </div>
+    <div class="main" id="mp"></div>
+  </div>
+</div>
+
+<script>
+const SAMPLE=[
+  {id:"0630",name:"Vigo County School Corp",county:"Vigo",totalAV:2850000000,debtServiceRate:0.2140,bonds:[
+    {id:"B001",description:"Elementary Renovation",debtType:"GO Bond",issued:2018,maturity:2033,originalAmount:12500000,interestRate:0.0325,endingBalance:6650000,totalPayment:1070000},
+    {id:"B002",description:"HVAC & Roof Projects",debtType:"Lease",issued:2021,maturity:2028,originalAmount:4200000,interestRate:0.0275,endingBalance:2200000,totalPayment:677000}]},
+  {id:"2345",name:"Hamilton Southeastern Schools",county:"Hamilton",totalAV:9200000000,debtServiceRate:0.1620,bonds:[
+    {id:"B003",description:"New High School Construction",debtType:"GO Bond",issued:2019,maturity:2039,originalAmount:85000000,interestRate:0.0350,endingBalance:67500000,totalPayment:7020000},
+    {id:"B004",description:"Technology & Safety Upgrades",debtType:"Lease",issued:2022,maturity:2029,originalAmount:8500000,interestRate:0.0290,endingBalance:6200000,totalPayment:1380000}]},
+  {id:"3412",name:"Franklin Community Schools",county:"Johnson",totalAV:1950000000,debtServiceRate:0.2480,bonds:[
+    {id:"B005",description:"Middle School Addition",debtType:"GO Bond",issued:2016,maturity:2026,originalAmount:6800000,interestRate:0.0295,endingBalance:680000,totalPayment:695000},
+    {id:"B006",description:"Athletic Facilities",debtType:"Lease",issued:2020,maturity:2030,originalAmount:3200000,interestRate:0.0310,endingBalance:2080000,totalPayment:380000}]},
+  {id:"7720",name:"Sullivan County Schools",county:"Sullivan",totalAV:420000000,debtServiceRate:0.3250,bonds:[
+    {id:"B007",description:"Elementary School Replacement",debtType:"GO Bond",issued:2014,maturity:2027,originalAmount:8900000,interestRate:0.0375,endingBalance:1450000,totalPayment:895000}]},
+  {id:"2901",name:"Carmel Clay Schools",county:"Hamilton",totalAV:12800000000,debtServiceRate:0.1340,bonds:[
+    {id:"B008",description:"Multi-School Renovation",debtType:"GO Bond",issued:2020,maturity:2040,originalAmount:110000000,interestRate:0.0280,endingBalance:90200000,totalPayment:7920000},
+    {id:"B009",description:"Fine Arts Center",debtType:"GO Bond",issued:2023,maturity:2033,originalAmount:18500000,interestRate:0.0385,endingBalance:16900000,totalPayment:2140000}]},
+  {id:"3280",name:"Brownsburg Community School Corp",county:"Hendricks",totalAV:4100000000,debtServiceRate:0.1980,bonds:[
+    {id:"B010",description:"High School Expansion",debtType:"GO Bond",issued:2017,maturity:2027,originalAmount:22000000,interestRate:0.0340,endingBalance:4600000,totalPayment:2310000},
+    {id:"B011",description:"Technology Refresh",debtType:"Lease",issued:2024,maturity:2031,originalAmount:5800000,interestRate:0.0410,endingBalance:5600000,totalPayment:970000}]},
+  {id:"4855",name:"West Lafayette Community Schools",county:"Tippecanoe",totalAV:2300000000,debtServiceRate:0.2720,bonds:[
+    {id:"B012",description:"Elementary Buildings",debtType:"GO Bond",issued:2015,maturity:2025,originalAmount:9500000,interestRate:0.0320,endingBalance:475000,totalPayment:975000},
+    {id:"B013",description:"STEM Labs & Safety",debtType:"Lease",issued:2022,maturity:2029,originalAmount:4100000,interestRate:0.0300,endingBalance:2940000,totalPayment:680000}]},
+  {id:"6120",name:"East Porter County School Corp",county:"Porter",totalAV:1680000000,debtServiceRate:0.2890,bonds:[
+    {id:"B014",description:"New Middle School",debtType:"GO Bond",issued:2013,maturity:2028,originalAmount:14200000,interestRate:0.0410,endingBalance:2980000,totalPayment:1490000}]},
+  {id:"1050",name:"Bartholomew Consol School Corp",county:"Bartholomew",totalAV:3750000000,debtServiceRate:0.2150,bonds:[
+    {id:"B015",description:"High School Renovation",debtType:"GO Bond",issued:2021,maturity:2036,originalAmount:38000000,interestRate:0.0295,endingBalance:31200000,totalPayment:3040000},
+    {id:"B016",description:"Bus Garage & Transportation",debtType:"Lease",issued:2019,maturity:2026,originalAmount:2800000,interestRate:0.0330,endingBalance:410000,totalPayment:430000}]},
+  {id:"3295",name:"Avon Community School Corp",county:"Hendricks",totalAV:5400000000,debtServiceRate:0.1750,bonds:[
+    {id:"B017",description:"New Elementary School",debtType:"GO Bond",issued:2022,maturity:2042,originalAmount:48000000,interestRate:0.0360,endingBalance:43200000,totalPayment:3460000}]},
+  {id:"2188",name:"MSD Warren Township",county:"Marion",totalAV:3100000000,debtServiceRate:0.2320,bonds:[
+    {id:"B018",description:"Facilities Master Plan Ph1",debtType:"GO Bond",issued:2016,maturity:2026,originalAmount:19500000,interestRate:0.0310,endingBalance:1950000,totalPayment:1970000},
+    {id:"B019",description:"Facilities Master Plan Ph2",debtType:"GO Bond",issued:2022,maturity:2037,originalAmount:28000000,interestRate:0.0370,endingBalance:25600000,totalPayment:2240000}]},
+  {id:"5390",name:"Noblesville Schools",county:"Hamilton",totalAV:6800000000,debtServiceRate:0.1580,bonds:[
+    {id:"B020",description:"New Elementary School #12",debtType:"GO Bond",issued:2023,maturity:2043,originalAmount:52000000,interestRate:0.0395,endingBalance:50400000,totalPayment:3740000}]},
+  {id:"6602",name:"Kokomo School Corp",county:"Howard",totalAV:1420000000,debtServiceRate:0.3480,bonds:[
+    {id:"B021",description:"Central Campus Rebuild",debtType:"GO Bond",issued:2015,maturity:2025,originalAmount:24000000,interestRate:0.0345,endingBalance:2400000,totalPayment:2440000}]},
+  {id:"7891",name:"Evansville-Vanderburgh School Corp",county:"Vanderburgh",totalAV:4900000000,debtServiceRate:0.2260,bonds:[
+    {id:"B022",description:"District-Wide HVAC & Roof",debtType:"GO Bond",issued:2020,maturity:2035,originalAmount:42000000,interestRate:0.0280,endingBalance:31500000,totalPayment:3360000},
+    {id:"B023",description:"Security & Technology",debtType:"Lease",issued:2023,maturity:2028,originalAmount:6500000,interestRate:0.0415,endingBalance:5850000,totalPayment:1460000}]},
+  {id:"4410",name:"Lake Central School Corp",county:"Lake",totalAV:3800000000,debtServiceRate:0.2410,bonds:[
+    {id:"B024",description:"New Primary School",debtType:"GO Bond",issued:2018,maturity:2028,originalAmount:31000000,interestRate:0.0355,endingBalance:12400000,totalPayment:3100000}]},
+];
+
+const NOW=new Date().getFullYear();
+let ALL=SAMPLE,FILT=[...SAMPLE],SEL=null,TF='all',CH=null;
+const ASM={avG:3,cov:90,lag:1,term:20};
+
+const ab=d=>d.bonds.filter(b=>(b.endingBalance||0)>0&&(!b.maturity||b.maturity>=NOW));
+const np=d=>{const a=ab(d).filter(b=>b.maturity&&b.maturity>NOW);if(a.length)return Math.min(...a.map(b=>b.maturity));const ae=ab(d).filter(b=>(b.totalPayment||0)>0);if(!ae.length)return null;const yrs=Math.round(ae.reduce((s,b)=>s+b.endingBalance/b.totalPayment,0)/ae.length);return NOW+Math.min(Math.max(yrs,1),30);};
+const ry=(d,l)=>{const n=np(d);return n?n+(l||1):null};
+const tot=d=>d.bonds.reduce((s,b)=>s+(b.endingBalance||0),0);
+const ann=d=>ab(d).reduce((s,b)=>s+(b.totalPayment||0),0);
+
+function cap(d,avG,cov,lag,term){
+  const r=ry(d,lag);if(!r)return 0;
+  if(!d.totalAV||!d.debtServiceRate){
+    const payFreed=d.bonds.filter(b=>!b.maturity||b.maturity<r).reduce((s,b)=>s+(b.totalPayment||0),0);
+    const rt=0.045,pv=rt>0&&term>0?(1-Math.pow(1+rt,-term))/rt:term;
+    return Math.round(payFreed*(cov/100)*pv/10000)*10000;
+  }
+  const pAV=d.totalAV*Math.pow(1+avG/100,Math.max(0,r-NOW));
+  const mDS=pAV*(d.debtServiceRate/100);
+  const pay=d.bonds.filter(b=>b.maturity>=r&&(b.endingBalance||0)>0).reduce((s,b)=>s+(b.totalPayment||0),0);
+  const av=Math.max(0,mDS-pay);const rt=0.045;
+  const pv=rt>0&&term>0?(1-Math.pow(1+rt,-term))/rt:term;
+  return Math.round(av*(cov/100)*pv/10000)*10000;
+}
+
+function urg(d,l){const r=ry(d,l);if(!r)return'x';const y=r-NOW;return y<=1?'r':y<=3?'a':y<=5?'g':'x'}
+const UL={r:'IMMINENT',a:'NEAR-TERM',g:'UPCOMING',x:'LONG-RANGE'};
+const UC={r:'#cc3333',a:'#d97706',g:'#008348',x:'#606060'};
+const UP={r:'pr',a:'pa',g:'pg',x:'px'};
+const UB={r:'ur',a:'ua',g:'ug',x:'ux'};
+const UB2={r:'ur2',a:'ua2',g:'ug2',x:'ux2'};
+
+function f$(n){if(n==null||isNaN(n))return'—';if(n>=1e9)return'$'+(n/1e9).toFixed(2)+'B';if(n>=1e6)return'$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return'$'+(n/1e3).toFixed(0)+'K';return'$'+n}
+const fp=n=>n==null?'—':(n*100).toFixed(4)+'%';
+
+function proj(b){
+  const{maturity,interestRate,endingBalance,totalPayment}=b;
+  if(!endingBalance||endingBalance<=0)return[];
+  const em=maturity&&maturity>NOW?maturity:(totalPayment>0?NOW+Math.min(Math.round(endingBalance/totalPayment),30):NOW+20);
+  const r=interestRate||0.04,tl=Math.max(1,em-NOW+1);
+  const pmt=r>0?endingBalance*r/(1-Math.pow(1+r,-tl)):endingBalance/tl;
+  const rows=[];let bal=endingBalance;
+  for(let yr=NOW;yr<=em&&bal>0;yr++){const i=bal*r,p=Math.min(pmt-i,bal);bal=Math.max(0,bal-p);rows.push({year:yr,pmt:Math.round(pmt),type:b.debtType});}
+  return rows;
+}
+
+function buildCF(){
+  const cs=[...new Set(ALL.map(d=>d.county))].sort();
+  ['cf','scf'].forEach(id=>{const s=document.getElementById(id);while(s.options.length>1)s.remove(1);cs.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;s.appendChild(o);});});
+}
+
+function setType(el){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');TF=el.dataset.t;onSearch();}
+
+function onSearch(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  const co=document.getElementById('scf').value||document.getElementById('cf').value;
+  const w=parseInt(document.getElementById('swf').value||document.getElementById('wf').value)||999;
+  const l=ASM.lag;
+  FILT=ALL.filter(d=>{
+    if(q&&!d.name.toLowerCase().includes(q)&&!d.county.toLowerCase().includes(q))return false;
+    if(co&&d.county!==co)return false;
+    const r=ry(d,l);if(w<999&&(!r||(r-NOW)>w))return false;
+    if(TF!=='all'){const has=d.bonds.some(b=>TF==='GO Bond'?b.debtType==='GO Bond':TF==='Lease'?b.debtType==='Lease':b.debtType!=='GO Bond'&&b.debtType!=='Lease');if(!has)return false;}
+    return true;
+  });
+  renderSB();
+}
+
+function renderSB(){
+  const dl=document.getElementById('dl'),dc=document.getElementById('dc');
+  dl.innerHTML='';dc.textContent=`${FILT.length} of ${ALL.length} districts`;
+  const l=ASM.lag;
+  const s=[...FILT].sort((a,b)=>{const o={r:0,a:1,g:2,x:3};const ua=urg(a,l),ub=urg(b,l);if(o[ua]!==o[ub])return o[ua]-o[ub];return(ry(a,l)||9999)-(ry(b,l)||9999);});
+  if(!s.length){dl.innerHTML='<div style="padding:15px 14px;font-size:12px;color:var(--text-dim)">No districts match</div>';return;}
+  s.forEach(d=>{
+    const u=urg(d,l),r=ry(d,l);
+    const div=document.createElement('div');
+    div.className='di'+(d.id===SEL?' on':'');
+    div.innerHTML=`<div class="din"><div class="pip ${UP[u]}"></div>${d.name}</div><div class="dim"><span>${d.county}</span><span>${d.bonds.length} instr.</span>${r?`<span>~${r}</span>`:''}</div>`;
+    div.onclick=()=>{SEL=d.id;renderSB();renderD(d);};
+    dl.appendChild(div);
+  });
+}
+
+function renderOv(){
+  const l=ASM.lag;
+  const im=ALL.filter(d=>urg(d,l)==='r').length,ne=ALL.filter(d=>['r','a'].includes(urg(d,l))).length;
+  const tb=ALL.reduce((s,d)=>s+d.bonds.length,0);
+  const go=ALL.reduce((s,d)=>s+d.bonds.filter(b=>b.debtType==='GO Bond').length,0);
+  const le=ALL.reduce((s,d)=>s+d.bonds.filter(b=>b.source==='lease').length,0);
+  const wl=[...ALL].filter(d=>ab(d).length).sort((a,b)=>(ry(a,l)||9999)-(ry(b,l)||9999)).slice(0,14);
+  const wm={};
+  ALL.forEach(d=>{const r=ry(d,l);if(!r||r<NOW)return;const c=cap(d,ASM.avG,ASM.cov,l,ASM.term);if(!wm[r])wm[r]={n:0,t:0};wm[r].n++;wm[r].t+=c;});
+  const wy=Object.keys(wm).map(Number).sort((a,b)=>a-b).slice(0,10);
+  const mx=Math.max(...wy.map(y=>wm[y].t),1);
+  document.getElementById('mp').innerHTML=`
+<div><div class="dtl">Statewide Overview</div><div class="dsu">${ALL.length} school corporations · Indiana Gateway / DLGF · ${NOW}</div></div>
+<div class="metrics">
+  <div class="met"><div class="ml">Districts tracked</div><div class="mv">${ALL.length}</div><div class="ms">school corporations</div></div>
+  <div class="met"><div class="ml">Total instruments</div><div class="mv">${tb}</div><div class="ms">${go} GO Bonds · ${le} Bldg Corp Leases</div></div>
+  <div class="met"><div class="ml">Imminent reissuance</div><div class="mv cr">${im}</div><div class="ms">within 1 year</div></div>
+  <div class="met"><div class="ml">3-year pipeline</div><div class="mv ca">${ne}</div><div class="ms">near-term opportunities</div></div>
+</div>
+<div class="card"><div class="ch"><span class="ct">Reissuance Watchlist — nearest payoffs first</span></div>
+${wl.map(d=>{const u=urg(d,l),r=ry(d,l),c=cap(d,ASM.avG,ASM.cov,l,ASM.term);const gb=d.bonds.filter(b=>b.debtType==='GO Bond').length,lb=d.bonds.filter(b=>b.debtType==='Lease').length;
+return`<div class="wlr" onclick="sel('${d.id}')"><div><div class="wln"><div class="pip ${UP[u]}"></div>${d.name}</div><div class="wlm">${d.county} Co · ${gb>0?gb+' GO Bond'+(gb!==1?'s':''):''}${gb>0&&lb>0?' · ':''}${lb>0?lb+' Lease'+(lb!==1?'s':''):''} · AV ${f$(d.totalAV)}</div></div><div class="wlrt"><div class="wly" style="color:${UC[u]}">${r||'—'}</div><div class="wlc">~${f$(c)}</div></div></div>`;}).join('')}</div>
+<div class="card"><div class="ch"><span class="ct">Statewide Reissuance Pipeline — by year</span></div>
+${wy.map(yr=>{const w=wm[yr],p=Math.round(w.t/mx*100);return`<div class="wr"><div class="wy">${yr}</div><div><div class="wb"><div class="wbf" style="width:${p}%"></div></div></div><div class="wct">${w.n} district${w.n!==1?'s':''}</div><div class="wtt">${f$(w.t)}</div></div>`;}).join('')}</div>
+<div class="ibox"><strong>About:</strong> Select a district from the sidebar to view its full debt schedule — GO Bonds and Lease Financing — amortization timeline, and reissuance forecast. The debt-type filter isolates instrument types independently. Click <strong>↑ Load Gateway File</strong> to replace sample data with live statewide records.<br><br><strong>Source:</strong> Indiana Gateway for Government Units · Annual Financial Reports · Debt file · School · All Years · <a href="https://gateway.ifionline.org/public/download.aspx" target="_blank" style="color:var(--core-green-lt)">gateway.ifionline.org</a></div>`;
+}
+
+function renderD(d){
+  const l=ASM.lag,u=urg(d,l),r=ry(d,l),n=np(d),c=cap(d,ASM.avG,ASM.cov,l,ASM.term);
+  const go=d.bonds.filter(b=>b.debtType==='GO Bond').length,le=d.bonds.filter(b=>b.debtType==='Lease').length;
+  const hasAV=d.totalAV>0,hasRate=d.debtServiceRate>0;
+  const estNote=!n||d.bonds.some(b=>!b.maturity)?'<span class="fc-note">* Payoff year estimated from balance ÷ annual payment — upload CNAV/Budget file for AV &amp; levy data</span>':'';
+  document.getElementById('mp').innerHTML=`
+<div class="dhr"><div><div class="dtl">${d.name}</div><div class="dsu">${d.county} County · Unit ${d.id} · ${go>0?go+' GO Bond'+(go!==1?'s':''):''}${go>0&&le>0?' · ':''}${le>0?le+' Lease'+(le!==1?'s':''):''}</div></div><span class="utag ${UB2[u]}">${UL[u]} REISSUANCE</span></div>
+<div class="metrics">
+  <div class="met"><div class="ml">Total outstanding</div><div class="mv cg">${f$(tot(d))}</div><div class="ms">${ab(d).length} active instrument(s)</div></div>
+  <div class="met"><div class="ml">Next payoff</div><div class="mv" style="color:${UC[u]}">${n||'—'}${n&&d.bonds.some(b=>!b.maturity)?'*':''}</div><div class="ms">${n?(n-NOW)+' yr(s) away':'no active debt'}</div></div>
+  <div class="met"><div class="ml">Net Assessed Value</div><div class="mv ${hasAV?'':'ca'}">${hasAV?f$(d.totalAV):'Not loaded'}</div><div class="ms">${hasAV?'certified AV':'upload CNAV file'}</div></div>
+  <div class="met"><div class="ml">DS levy rate</div><div class="mv ${hasRate?'':'ca'}">${hasRate?fp(d.debtServiceRate):'Not loaded'}</div><div class="ms">${hasRate?'per $100 AV':'upload Budget file'}</div></div>
+</div>
+<div class="fb2 ${UB[u]}">
+  <div><div class="fcl">Reissuance year</div><div class="fcv" style="color:${UC[u]}">${r||'—'}</div><div class="fcs">projected${r&&d.bonds.some(b=>!b.maturity)?'*':''}</div></div>
+  <div><div class="fcl">Est. new capacity</div><div class="fcv" style="color:${UC[u]}">${c?f$(c):(hasAV?'$0':'Needs AV')}</div><div class="fcs">principal</div></div>
+  <div><div class="fcl">Years until window</div><div class="fcv" style="color:${UC[u]}">${r?Math.max(0,r-NOW):'—'}</div><div class="fcs">from today</div></div>
+  <div><div class="fcl">Max annual DS</div><div class="fcv ${hasAV&&hasRate?'cg':'ca'}">${hasAV&&hasRate?f$(d.totalAV*(d.debtServiceRate/100)):'Needs AV+Rate'}</div><div class="fcs">at current AV &amp; rate</div></div>
+</div>
+${estNote}
+<div class="card detail-full">
+  <div class="ch"><span class="ct">Debt Instruments — GO Bonds &amp; Lease Financing</span><span style="font-size:10px;color:var(--text-dim)">${d.bonds.length} total · scroll to see all</span></div>
+  <div class="table-scroll"><table class="bt"><thead><tr><th>Description</th><th>Type</th><th>Lessor / Source</th><th>Issued</th><th>Matures</th><th>Remaining</th><th>Ann. Payment</th><th>Rate</th><th>Status</th></tr></thead><tbody>
+  ${d.bonds.sort((a,b)=>{const o={'GO Bond':0,'Revenue Bond':1,'Building Corp Lease':2,'Lease':3,'Note':4,'Other':5};return(o[a.debtType]||9)-(o[b.debtType]||9)||((b.endingBalance||0)-(a.endingBalance||0));}).map(b=>{const ret=(b.endingBalance||0)<=0,soon=!ret&&b.maturity&&b.maturity<=NOW+2;const typeClass=b.source==='lease'?'bg':b.debtType==='GO Bond'?'bl':'bx';const srcLabel=b.lessor||(b.source==='lease'?'Building Corp':'DLGF');return`<tr><td style="font-weight:600;color:var(--white)">${b.description}</td><td><span class="bdg ${typeClass}">${b.debtType}</span></td><td style="color:var(--text-dim);font-size:11px">${srcLabel.length>22?srcLabel.slice(0,20)+'…':srcLabel}</td><td style="color:var(--text-mid)">${b.issued||'—'}</td><td style="color:var(--text-mid)">${b.maturity||'—'}</td><td style="font-weight:600;color:${b.source==='lease'?'#a5ccb7':'var(--white)'}">${ret?'—':f$(b.endingBalance)}</td><td style="color:var(--text-mid)">${f$(b.totalPayment)}</td><td style="color:var(--text-dim)">${b.interestRate?(b.interestRate*100).toFixed(2)+'%':'—'}</td><td><span class="bdg ${ret?'bx':soon?'bs':'ba'}">${ret?'Retired':soon?'Payoff soon':'Active'}</span></td></tr>`;}).join('')}
+  </tbody></table></div>
+</div>
+<div class="detail-grid">
+  <div class="card">
+    <div class="ch"><span class="ct">Debt Timeline</span></div>
+    <div class="cb" id="tl"></div>
+  </div>
+  <div class="card">
+    <div class="ch"><span class="ct">Outstanding Balance by Bond</span><span style="font-size:10px;color:var(--text-dim)">active instruments</span></div>
+    <div class="cb" id="balChart"><div class="chart-wrap"><canvas id="bc"></canvas></div></div>
+  </div>
+</div>
+<div class="card detail-full">
+  <div class="ch"><span class="ct">Annual Debt Service — Per Bond, Per Year</span><span style="font-size:10px;color:var(--text-dim)">stacked · projected forward</span></div>
+  <div class="cb">
+    <div class="chart-wrap-tall"><canvas id="ac" role="img" aria-label="Debt service projection for ${d.name}"></canvas></div>
+    <div class="leg" id="chartLeg"></div>
+  </div>
+</div>
+<div class="card detail-full">
+  <div class="ch"><span class="ct">Year-by-Year Debt Service Breakdown</span></div>
+  <div class="table-scroll" style="max-height:260px"><table class="yr-table" id="yrTable"></table></div>
+</div>
+<div class="card detail-full">
+  <div class="ch"><span class="ct">Forecast Assumptions</span></div>
+  <div class="cb">
+    <div class="asmg">
+      <div class="asmi"><label>AV Growth Rate</label><div class="asmr"><input class="asmin" type="number" id="ag" value="${ASM.avG}" step="0.5" min="0" max="15"><span class="asmu">% / yr</span></div></div>
+      <div class="asmi"><label>Debt Coverage</label><div class="asmr"><input class="asmin" type="number" id="ac2" value="${ASM.cov}" step="5" min="50" max="100"><span class="asmu">%</span></div></div>
+      <div class="asmi"><label>Reissuance Lag</label><div class="asmr"><input class="asmin" type="number" id="al" value="${ASM.lag}" step="1" min="0" max="5"><span class="asmu">yr after payoff</span></div></div>
+      <div class="asmi"><label>New Bond Term</label><div class="asmr"><input class="asmin" type="number" id="at" value="${ASM.term}" step="5" min="5" max="30"><span class="asmu">years</span></div></div>
+    </div>
+    <button class="rbtn" onclick="applyAsm()">Recalculate Forecast</button>
+  </div>
+</div>`;
+  renderTL(d);
+  renderBalChart(d);
+  renderChart(d);
+  renderYrTable(d);
+}
+
+function renderTL(d){
+  const l=ASM.lag,r=ry(d,l);
+  const ay=d.bonds.filter(b=>b.issued&&b.maturity).map(b=>[b.issued,b.maturity]).flat();if(r)ay.push(r+4);
+  if(!ay.length){w.innerHTML='<div style="color:var(--text-dim);font-size:12px;padding:8px 0">Issue/maturity dates not available in this Gateway file.</div>';return;}
+  const mn=Math.min(...ay,NOW-1),mx=Math.max(...ay)+1,sp=mx-mn;
+  const w=document.getElementById('tl');if(!w)return;
+  const ly=[];for(let y=mn;y<=mx;y+=Math.ceil(sp/8))ly.push(y);
+  let h=`<div class="tlyr">${ly.map(y=>`<span>${y}</span>`).join('')}</div>`;
+  d.bonds.forEach(b=>{const lf=((b.issued-mn)/sp*100).toFixed(1),wd=((b.maturity-b.issued)/sp*100).toFixed(1);
+    h+=`<div class="tlrow"><div class="tllbl" title="${b.description}">${b.description}</div><div class="tltr"><div class="tlbar ${b.debtType==='Lease'?'tlle':'tlgo'}" style="left:${lf}%;width:${wd}%"></div></div><div class="tlend">${b.maturity}</div></div>`;});
+  if(r){const lf=((r-mn)/sp*100).toFixed(1),wd=(5/sp*100).toFixed(1);
+    h+=`<div class="tlrow"><div class="tllbl" style="color:var(--core-green-lt);font-weight:600">Forecast window</div><div class="tltr"><div class="tlbar tlfc" style="left:${lf}%;width:${wd}%"></div></div><div class="tlend" style="color:var(--core-green-lt)">${r}</div></div>`;}
+  w.innerHTML=h;
+}
+
+function renderChart(d){
+  if(CH){CH.destroy();CH=null;}
+  const canvas=document.getElementById('ac');if(!canvas)return;
+  const l=ASM.lag,r=ry(d,l),c=cap(d,ASM.avG,ASM.cov,l,ASM.term);
+  const activeBs=d.bonds.filter(b=>(b.endingBalance||0)>0);
+
+  // Build year range
+  const mats=activeBs.map(b=>b.maturity).filter(Boolean);
+  const endYr=Math.max(r?r+6:NOW+12,...(mats.length?mats:[NOW+12]))+1;
+  const labels=[];
+  for(let yr=NOW;yr<=endYr;yr++) labels.push(yr);
+
+  // Per-bond datasets
+  const COLORS=["#008348","#5ab388","#003d20","#a5ccb7","#00c46a","#006836","#7dd4a8","#004d28","#c8e8d8","#002d16","#3d9e6e","#88c9a8","#1a6640","#b2ddc8","#226644"];
+  const datasets=activeBs.map((b,i)=>{
+    const rows=proj(b);
+    const rowMap={};rows.forEach(row=>rowMap[row.year]=row.pmt);
+    return{
+      label:b.description.length>28?b.description.slice(0,26)+'\u2026':b.description,
+      data:labels.map(yr=>Math.round(rowMap[yr]||0)),
+      backgroundColor:COLORS[i%COLORS.length],
+      borderRadius:2,
+      stack:'payments',
+    };
+  });
+
+  // Reissuance capacity overlay
+  if(r&&c){
+    datasets.push({
+      label:'Reissuance capacity (est.)',
+      data:labels.map(yr=>(yr>=r&&yr<=r+4)?Math.round(c/20):null),
+      backgroundColor:'rgba(0,131,72,.18)',
+      borderColor:'rgba(0,131,72,.5)',
+      borderWidth:1,
+      borderRadius:2,
+      stack:'capacity',
+    });
+  }
+
+  CH=new Chart(canvas,{
+    type:'bar',
+    data:{labels,datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title:items=>'Year: '+items[0].label,
+            label:ctx=>{const v=ctx.raw;return v>0?' '+ctx.dataset.label+': '+f$(v):null;},
+            footer:items=>{const total=items.reduce((s,i)=>s+(i.raw||0),0);return total>0?'Total: '+f$(total):'';}
+          }
+        }
+      },
+      scales:{
+        x:{stacked:true,grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#8a8a8a',font:{size:10},maxRotation:45,maxTicksLimit:18}},
+        y:{stacked:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8a8a8a',font:{size:10},callback:v=>f$(v)}},
+      }
+    }
+  });
+
+  // Build legend
+  const leg=document.getElementById('chartLeg');
+  if(leg){
+    leg.innerHTML=activeBs.map((b,i)=>`<div class="legit"><div class="legsw" style="background:${COLORS[i%COLORS.length]}"></div>${b.description.length>30?b.description.slice(0,28)+'\u2026':b.description}</div>`).join('')+(r&&c?`<div class="legit"><div class="legsw" style="background:rgba(0,131,72,.3);border:1px solid rgba(0,131,72,.6)"></div>Reissuance capacity</div>`:'');
+  }
+}
+
+function renderBalChart(d){
+  // Horizontal bar — outstanding balance per bond
+  const old=Chart.getChart('bc');if(old)old.destroy();
+  const canvas=document.getElementById('bc');if(!canvas)return;
+  const active=d.bonds.filter(b=>(b.endingBalance||0)>0);
+  if(!active.length){canvas.parentElement.innerHTML='<div style="color:var(--text-dim);font-size:12px;padding:16px 0;text-align:center">No active balances</div>';return;}
+  const COLORS=["#008348","#5ab388","#003d20","#a5ccb7","#00c46a","#006836","#7dd4a8","#004d28","#c8e8d8","#002d16","#3d9e6e","#88c9a8","#1a6640","#b2ddc8","#226644"];
+  new Chart(canvas,{
+    type:'bar',
+    data:{
+      labels:active.map(b=>b.description.length>24?b.description.slice(0,22)+'\u2026':b.description),
+      datasets:[{
+        label:'Remaining balance',
+        data:active.map(b=>b.endingBalance||0),
+        backgroundColor:active.map((_,i)=>COLORS[i%COLORS.length]),
+        borderRadius:3,
+      }]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>' '+f$(ctx.raw)}}},
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'#8a8a8a',font:{size:10},callback:v=>f$(v)}},
+        y:{grid:{display:false},ticks:{color:'#b8b8b8',font:{size:10}}}
+      }
+    }
+  });
+}
+
+function renderYrTable(d){
+  const t=document.getElementById('yrTable');if(!t)return;
+  const activeBs=d.bonds.filter(b=>(b.endingBalance||0)>0);
+  const l=ASM.lag,r=ry(d,l);
+  const mats=activeBs.map(b=>b.maturity).filter(Boolean);
+  const endYr=Math.min(Math.max(r?r+3:NOW+10,...(mats.length?mats:[NOW+10]))+1, NOW+21);
+
+  // Build per-bond per-year payment map
+  const bondYrMap={};
+  activeBs.forEach(b=>{
+    bondYrMap[b.id]={};
+    proj(b).forEach(row=>{bondYrMap[b.id][row.year]=row.pmt;});
+  });
+
+  const years=[];for(let yr=NOW;yr<=endYr;yr++)years.push(yr);
+
+  // Header
+  let hdr=`<thead><tr><th>Bond / Lease</th>${years.map(y=>`<th>${y}</th>`).join('')}</tr></thead>`;
+
+  // Rows per bond
+  let rows='<tbody>';
+  activeBs.forEach((b,i)=>{
+    const COLORS=["#008348","#5ab388","#003d20","#a5ccb7","#00c46a","#006836","#7dd4a8","#004d28"];
+    const col=COLORS[i%COLORS.length];
+    rows+=`<tr><td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:6px"></span>${b.description.length>32?b.description.slice(0,30)+'\u2026':b.description}</td>`;
+    years.forEach(yr=>{
+      const v=bondYrMap[b.id][yr]||0;
+      rows+=`<td>${v>0?f$(v):'<span style="color:#4a4a4a">—</span>'}</td>`;
+    });
+    rows+='</tr>';
+  });
+
+  // Total row
+  rows+='<tr class="total-row"><td>Total Debt Service</td>';
+  years.forEach(yr=>{
+    const total=activeBs.reduce((s,b)=>s+(bondYrMap[b.id][yr]||0),0);
+    rows+=`<td>${total>0?f$(total):'—'}</td>`;
+  });
+  rows+='</tr>';
+
+  // Reissuance row if applicable
+  if(r){
+    rows+='<tr class="proj-row"><td style="color:var(--core-green-lt)">+ Projected reissuance</td>';
+    years.forEach(yr=>{rows+=`<td>${yr>=r&&yr<=r+1?'<span style="color:var(--core-green-lt)">'+f$(cap(d,ASM.avG,ASM.cov,ASM.lag,ASM.term))+'*</span>':'—'}</td>`;});
+    rows+='</tr>';
+  }
+
+  rows+='</tbody>';
+  t.innerHTML=hdr+rows;
+}
+
+function applyAsm(){
+  ASM.avG=parseFloat(document.getElementById('ag')?.value)||3;
+  ASM.cov=parseFloat(document.getElementById('ac2')?.value)||90;
+  ASM.lag=parseInt(document.getElementById('al')?.value)||1;
+  ASM.term=parseInt(document.getElementById('at')?.value)||20;
+  const d=ALL.find(x=>x.id===SEL);if(d){renderD(d);renderSB();}
+}
+
+function sel(id){const d=ALL.find(x=>x.id===id);if(!d)return;SEL=id;renderSB();renderD(d);}
+
+function openModal(){document.getElementById('ov').classList.add('show');}
+function closeModal(){document.getElementById('ov').classList.remove('show');}
+function useSample(){ALL=SAMPLE;SEL=null;buildCF();onSearch();renderOv();closeModal();}
+
+document.getElementById('dz').onclick=()=>document.getElementById('fi').click();
+document.getElementById('fi').onchange=e=>{if(e.target.files[0])parseF(e.target.files[0]);};
+document.getElementById('dz').ondragover=e=>{e.preventDefault();e.currentTarget.classList.add('over');};
+document.getElementById('dz').ondragleave=e=>e.currentTarget.classList.remove('over');
+document.getElementById('dz').ondrop=e=>{e.preventDefault();e.currentTarget.classList.remove('over');if(e.dataTransfer.files[0])parseF(e.dataTransfer.files[0]);};
+
+function st(m,c='var(--core-green-lt)'){const e=document.getElementById('pst');e.style.color=c;e.textContent=m;}
+
+function cdt(raw){const s=(raw||'').toLowerCase();if(s.includes('lease'))return'Lease';if(s.includes('revenue'))return'Revenue Bond';if(s.includes('note')||s.includes('promissory'))return'Note';if(s.includes('general obligation')||s.includes('go bond'))return'GO Bond';return raw||'GO Bond';}
+
+// Global store for lease data so it can be merged after debt loads and vice versa
+let LEASE_DATA = {}; // uid -> [{id, description, debtType, issued, maturity, annualPayment, lessor}]
+
+function mergeLeaseData(){
+  // For every district, add/update its lease instruments from LEASE_DATA
+  ALL.forEach(d=>{
+    const leases=LEASE_DATA[d.id];
+    if(!leases||!leases.length)return;
+    leases.forEach(lease=>{
+      const ex=d.bonds.findIndex(b=>b.id===lease.id);
+      if(ex>=0){d.bonds[ex]=lease;}
+      else d.bonds.push(lease);
+    });
+  });
+}
+
+function parseF(file){
+  st('Reading file\u2026');
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const txt=e.target.result;
+      const lines=txt.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){st('File appears empty.','#d97706');return;}
+      const dl='|';
+      const cols=lines[0].split(dl).map(c=>c.trim().toLowerCase());
+
+      // Auto-detect: debt file has debt_class_code, lease file has lease_id
+      const isLease=cols.includes('lease_id');
+      const isDebt=cols.includes('debt_class_code')||cols.includes('debt_description');
+
+      if(isLease){
+        parseLeaseFile(lines, cols, dl);
+        return;
+      }
+
+      st('Detected '+cols.length+' columns, '+(lines.length-1)+' rows. Parsing debt file\u2026');
+
+      const COLMAP={
+        year:           ['year'],
+        county:         ['cnty_description','county','countyname'],
+        unit_type_code: ['budget_unit_type'],
+        unit_code:      ['unit_code','unit_cd','unitid'],
+        unit_name:      ['unit_name','unitname','unitdesc'],
+        debt_class_code:['debt_class_code'],
+        debt_class_name:['debt_class_name','debttype','type'],
+        debt_desc:      ['debt_description','description','debtdescription','desc'],
+        end_balance:    ['end_principal_bal','endingbalance','end_balance','endbalance'],
+        payment_1yr:    ['principal_amt_due_1yr','totalpayment','annualpayment','payment'],
+        interest_rate:  ['interest_rate','interestrate','rate'],
+        issue_date:     ['issue_date','issuedate'],
+        maturity_date:  ['maturity_date','maturitydate','finalmaturity','duedate'],
+        original_amt:   ['original_principal_amt','originalamount','facevalue'],
+      };
+      const ci={};
+      for(const[k,variants] of Object.entries(COLMAP)){
+        ci[k]=-1;
+        for(const v of variants){const idx=cols.indexOf(v);if(idx>=0){ci[k]=idx;break;}}
+      }
+
+      const get=(row,key)=>{const i=ci[key];return(i>=0&&i<row.length)?(row[i]||'').trim():'';};
+      const pd=s=>parseFloat((s||'').replace(/[\$,]/g,'').replace(/^\((.*)\)$/,'$1'))||0;
+      const pr=s=>{if(!s)return 0;const v=parseFloat((s||'').replace('%',''))||0;return v>1?v/100:v;};
+      const py=s=>{const m=(s||'').match(/(\d{4})/);return m?parseInt(m[1]):null;};
+
+      const classifyType=(code,name)=>{
+        const c=parseInt(code)||0;const n=(name||'').toLowerCase();
+        if(c===1||n.includes('general obligation')||n.includes('g.o.')) return 'GO Bond';
+        if(c===3||n.includes('lease')) return 'Lease';
+        if(c===2||n.includes('revenue')) return 'Revenue Bond';
+        if(n.includes('note')||n.includes('promissory')) return 'Note';
+        if(n.includes('line of credit')) return 'Line of Credit';
+        return name||'Other';
+      };
+
+      const dm={};let sk=0;
+      for(let i=1;i<lines.length;i++){
+        const row=lines[i].split(dl);if(row.length<3)continue;
+        const utc=get(row,'unit_type_code');if(utc&&utc!=='4'){sk++;continue;}
+        const yr=get(row,'year'),uid=get(row,'unit_code')||('r'+i);
+        const name=get(row,'unit_name')||'Unknown',county=get(row,'county')||'';
+        const dclass=get(row,'debt_class_code'),dname=get(row,'debt_class_name');
+        const ddesc=get(row,'debt_desc')||'Bond';
+        const endBal=pd(get(row,'end_balance')),payment=pd(get(row,'payment_1yr'));
+        const rate=pr(get(row,'interest_rate')),issued=py(get(row,'issue_date'));
+        const maturity=py(get(row,'maturity_date')),origAmt=pd(get(row,'original_amt'));
+        const debtType=classifyType(dclass,dname);
+        if(!dm[uid])dm[uid]={id:uid,name,county,totalAV:0,debtServiceRate:0,bonds:[]};
+        const bondKey=uid+'||'+ddesc;const reportYr=parseInt(yr)||0;
+        const bond={id:bondKey,description:ddesc,debtType,issued,maturity,
+                    originalAmount:origAmt,interestRate:rate,
+                    endingBalance:endBal,totalPayment:payment,reportYear:reportYr,source:'debt'};
+        const ex=dm[uid].bonds.findIndex(b=>b.id===bondKey);
+        if(ex>=0){if(reportYr>=(dm[uid].bonds[ex].reportYear||0))dm[uid].bonds[ex]=bond;}
+        else dm[uid].bonds.push(bond);
+      }
+
+      const parsed=Object.values(dm).filter(d=>d.bonds.length>0);
+      if(!parsed.length){st('No school records found.','#d97706');return;}
+
+      ALL=parsed;SEL=null;
+      // Merge any previously loaded lease data
+      mergeLeaseData();
+      buildCF();onSearch();renderOv();
+
+      const tb=ALL.reduce((s,d)=>s+d.bonds.length,0);
+      const gb=ALL.reduce((s,d)=>s+d.bonds.filter(b=>b.debtType==='GO Bond').length,0);
+      const lb=ALL.reduce((s,d)=>s+d.bonds.filter(b=>b.source==='lease').length,0);
+      const hasLeases=Object.keys(LEASE_DATA).length>0;
+      st('\u2713 '+ALL.length+' districts \u00b7 '+tb+' instruments ('+gb+' GO Bonds \u00b7 '+lb+' Building Corp Leases)'+(hasLeases?'':' \u00b7 Load Leases file to add building corp debt'));
+      setTimeout(()=>{if(!hasLeases) return; closeModal();},2000);
+    }catch(err){st('Parse error: '+err.message,'#cc3333');console.error(err);}
+  };
+  r.onerror=()=>st('Could not read file.','#cc3333');
+  r.readAsText(file);
+}
+
+function parseLeaseFile(lines, cols, dl){
+  const pst3=document.getElementById('pst3');
+  const setSt=m=>{if(pst3)pst3.textContent=m;};
+  setSt('Parsing leases file\u2026');
+
+  const ci2={};
+  const LMAP={
+    year:['year'],unit_type_code:['budget_unit_type'],
+    unit_code:['unit_code','unit_cd'],unit_name:['unit_name'],
+    county:['cnty_description','county'],
+    lease_id:['lease_id'],lessor:['lessor'],
+    lease_desc:['lease_description','description'],
+    annual_payment:['annual_payment','payment'],
+    beginning_date:['beginning_date','start_date','issue_date'],
+    ending_date:['ending_date','maturity_date','end_date'],
+  };
+  for(const[k,variants] of Object.entries(LMAP)){
+    ci2[k]=-1;
+    for(const v of variants){const idx=cols.indexOf(v);if(idx>=0){ci2[k]=idx;break;}}
+  }
+  const get2=(row,key)=>{const i=ci2[key];return(i>=0&&i<row.length)?(row[i]||'').trim():'';};
+  const pd=s=>parseFloat((s||'').replace(/[\$,]/g,'').replace(/^\((.*)\)$/,'$1'))||0;
+  const py=s=>{const m=(s||'').match(/(\d{4})/);return m?parseInt(m[1]):null;};
+
+  // Build lease data map: uid -> array of latest-year bond objects
+  const leaseByUID={};
+  let sk=0;
+
+  for(let i=1;i<lines.length;i++){
+    const row=lines[i].split(dl);if(row.length<3)continue;
+    const utc=get2(row,'unit_type_code');if(utc&&utc!=='4'){sk++;continue;}
+    const yr=parseInt(get2(row,'year'))||0;
+    const uid=get2(row,'unit_code');if(!uid)continue;
+    const leaseId=get2(row,'lease_id');if(!leaseId)continue;
+    const desc=get2(row,'lease_desc')||'Lease';
+    const annualPmt=pd(get2(row,'annual_payment'));
+    const issued=py(get2(row,'beginning_date'));
+    const maturity=py(get2(row,'ending_date'));
+    const lessor=get2(row,'lessor');
+    const county=get2(row,'county');
+    const name=get2(row,'unit_name');
+
+    // Estimate remaining balance: annual payment * years remaining
+    const NOW_YR=new Date().getFullYear();
+    const yrsLeft=maturity?Math.max(0,maturity-NOW_YR):0;
+    const estBalance=Math.round(annualPmt*yrsLeft);
+
+    // Only include active leases (maturity in future)
+    if(maturity&&maturity<NOW_YR)continue;
+
+    const bondKey='LEASE||'+uid+'||'+leaseId;
+    const bond={
+      id:bondKey,description:desc,debtType:'Building Corp Lease',
+      issued,maturity,originalAmount:0,interestRate:0,
+      endingBalance:estBalance,totalPayment:annualPmt,
+      lessor,source:'lease',reportYear:yr,
+    };
+
+    if(!leaseByUID[uid])leaseByUID[uid]={name,county,bonds:{}};
+    // Keep most recent year's entry per lease_id
+    if(!leaseByUID[uid].bonds[leaseId]||yr>=(leaseByUID[uid].bonds[leaseId].reportYear||0)){
+      leaseByUID[uid].bonds[leaseId]=bond;
+    }
+  }
+
+  // Store in global LEASE_DATA
+  LEASE_DATA={};
+  for(const[uid,data] of Object.entries(leaseByUID)){
+    LEASE_DATA[uid]=Object.values(data.bonds);
+  }
+
+  const totalLeases=Object.values(LEASE_DATA).reduce((s,arr)=>s+arr.length,0);
+  const totalDistricts=Object.keys(LEASE_DATA).length;
+  setSt('\u2713 '+totalDistricts+' districts \u00b7 '+totalLeases+' active building corp leases loaded');
+
+  // If debt data already loaded, merge in
+  if(ALL.length>0){
+    mergeLeaseData();
+    const d=ALL.find(x=>x.id===SEL);
+    if(d)renderD(d);
+    renderOv();
+    renderSB();
+    setTimeout(closeModal,1800);
+  }
+}
+
+function parseCNAV(file){
+  const pst2=document.getElementById('pst2');
+  if(pst2)pst2.textContent='Reading file\u2026';
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());
+      if(lines.length<2){if(pst2)pst2.textContent='File empty.';return;}
+      const cols=lines[0].split('|').map(c=>c.trim().toLowerCase());
+
+      // Column lookup for CNAV and Budget files
+      const ci=name=>{
+        const variants={
+          unit_code:['unit_code','unit_cd','unitid','unit_id'],
+          net_av:['net_av','certified_av','total_av','netav','av','assessed_value','cnav'],
+          tax_rate:['tax_rate','levy_rate','rate','ds_rate','debt_service_rate','taxrate'],
+          max_levy:['max_levy','certified_levy','maximum_levy','maxlevy'],
+          fund:['fund','fund_number','fund_cd','fundnum'],
+          unit_type:['budget_unit_type','unit_type','afr_unit_type'],
+        }[name]||[name];
+        for(const v of variants){const i=cols.indexOf(v);if(i>=0)return i;}
+        return -1;
+      };
+      const get=(row,k)=>{const i=ci(k);return(i>=0&&i<row.length)?(row[i]||'').trim():'';};
+      const pd=s=>parseFloat((s||'').replace(/[\$,]/g,''))||0;
+      const pr=s=>{const v=parseFloat((s||'').replace('%',''))||0;return v>1?v/100:v;};
+
+      // Detect file type from columns present
+      const isBudget=cols.includes('fund')||cols.includes('fund_cd')||cols.includes('fund_number')||cols.some(c=>c.includes('levy')||c.includes('tax_rate'));
+      const isCNAV=cols.some(c=>c.includes('net_av')||c.includes('cnav')||c.includes('assessed'));
+      console.log('CNAV/Budget file cols:', cols.slice(0,12), 'isBudget:', isBudget, 'isCNAV:', isCNAV);
+
+      let matched=0,avSet=0,rateSet=0;
+
+      for(let i=1;i<lines.length;i++){
+        const row=lines[i].split('|');
+        if(row.length<3)continue;
+        const utc=get(row,'unit_type');
+        if(utc&&utc!=='4'&&utc!=='5')continue; // schools only
+        const uid=get(row,'unit_code');if(!uid)continue;
+        const dist=ALL.find(d=>d.id===uid);if(!dist)continue;
+        matched++;
+
+        if(isBudget){
+          // Budget file: fund 6300 = debt service
+          const fund=get(row,'fund');
+          if(fund==='6300'||fund==='6310'||!fund){
+            const rate=pr(get(row,'tax_rate'));
+            const levy=pd(get(row,'max_levy'));
+            if(rate>0&&rate<1){dist.debtServiceRate=rate;rateSet++;}
+            if(levy>0){dist.maxLevy=levy;}
+          }
+        }
+        if(isCNAV||!isBudget){
+          const av=pd(get(row,'net_av'));
+          if(av>0){dist.totalAV=av;avSet++;}
+        }
+      }
+
+      const msg='\u2713 Matched '+matched+' districts · '+avSet+' AV values · '+rateSet+' levy rates loaded';
+      if(pst2)pst2.textContent=msg;
+      console.log(msg);
+      // Refresh current detail view if open
+      const d=ALL.find(x=>x.id===SEL);
+      if(d){renderD(d);}
+      renderOv();
+    }catch(err){
+      if(pst2)pst2.textContent='Error: '+err.message;
+      console.error(err);
+    }
+  };
+  r.readAsText(file);
+}
+
+buildCF();renderSB();renderOv();
+</script>
+</body>
+</html>
