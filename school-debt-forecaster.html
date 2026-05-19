@@ -648,7 +648,8 @@ function cdt(raw){const s=(raw||'').toLowerCase();if(s.includes('lease'))return'
 let LEASE_DATA = {}; // uid -> [{id, description, debtType, issued, maturity, annualPayment, lessor}]
 
 function mergeLeaseData(){
-  // For every district, add/update its lease instruments from LEASE_DATA
+  if(!LEASE_DATA||!Object.keys(LEASE_DATA).length)return;
+  // Update existing districts with lease bonds
   ALL.forEach(d=>{
     const leases=LEASE_DATA[d.id];
     if(!leases||!leases.length)return;
@@ -658,6 +659,15 @@ function mergeLeaseData(){
       else d.bonds.push(lease);
     });
   });
+  // Add any districts that exist in LEASE_DATA but not yet in ALL
+  // (happens when leases load before debt file, then debt loads)
+  const existingIds=new Set(ALL.map(d=>d.id));
+  for(const[uid,bonds] of Object.entries(LEASE_DATA)){
+    if(!existingIds.has(uid)){
+      ALL.push({id:uid,name:bonds[0]?bonds[0].lessor||'Unknown':'Unknown',
+                county:'',totalAV:0,debtServiceRate:0,bonds:[...bonds]});
+    }
+  }
 }
 
 function parseF(file){
@@ -782,33 +792,31 @@ function parseLeaseFile(lines, cols, dl){
     for(const v of variants){const idx=cols.indexOf(v);if(idx>=0){ci2[k]=idx;break;}}
   }
   const get2=(row,key)=>{const i=ci2[key];return(i>=0&&i<row.length)?(row[i]||'').trim():'';};
-  const pd=s=>parseFloat((s||'').replace(/[\$,]/g,'').replace(/^\((.*)\)$/,'$1'))||0;
-  const py=s=>{const m=(s||'').match(/(\d{4})/);return m?parseInt(m[1]):null;};
+  const pd2=s=>parseFloat((s||'').replace(/[\$,]/g,'').replace(/^\((.*)\)$/,'$1'))||0;
+  const py2=s=>{const m=(s||'').match(/(\d{4})/);return m?parseInt(m[1]):null;};
 
-  // Build lease data map: uid -> array of latest-year bond objects
+  const NOW_YR=new Date().getFullYear();
   const leaseByUID={};
-  let sk=0;
 
   for(let i=1;i<lines.length;i++){
     const row=lines[i].split(dl);if(row.length<3)continue;
-    const utc=get2(row,'unit_type_code');if(utc&&utc!=='4'){sk++;continue;}
+    const utc=get2(row,'unit_type_code');if(utc&&utc!=='4')continue;
     const yr=parseInt(get2(row,'year'))||0;
     const uid=get2(row,'unit_code');if(!uid)continue;
     const leaseId=get2(row,'lease_id');if(!leaseId)continue;
     const desc=get2(row,'lease_desc')||'Lease';
-    const annualPmt=pd(get2(row,'annual_payment'));
-    const issued=py(get2(row,'beginning_date'));
-    const maturity=py(get2(row,'ending_date'));
+    const annualPmt=pd2(get2(row,'annual_payment'));
+    const issued=py2(get2(row,'beginning_date'));
+    const maturity=py2(get2(row,'ending_date'));
     const lessor=get2(row,'lessor');
     const county=get2(row,'county');
     const name=get2(row,'unit_name');
 
     // Estimate remaining balance: annual payment * years remaining
-    const NOW_YR=new Date().getFullYear();
     const yrsLeft=maturity?Math.max(0,maturity-NOW_YR):0;
     const estBalance=Math.round(annualPmt*yrsLeft);
 
-    // Only include active leases (maturity in future)
+    // Only include active leases
     if(maturity&&maturity<NOW_YR)continue;
 
     const bondKey='LEASE||'+uid+'||'+leaseId;
@@ -820,9 +828,14 @@ function parseLeaseFile(lines, cols, dl){
     };
 
     if(!leaseByUID[uid])leaseByUID[uid]={name,county,bonds:{}};
-    // Keep most recent year's entry per lease_id
     if(!leaseByUID[uid].bonds[leaseId]||yr>=(leaseByUID[uid].bonds[leaseId].reportYear||0)){
       leaseByUID[uid].bonds[leaseId]=bond;
+    }
+    // Also track district name/county from latest year
+    if(yr>=(leaseByUID[uid].latestYr||0)){
+      leaseByUID[uid].name=name;
+      leaseByUID[uid].county=county;
+      leaseByUID[uid].latestYr=yr;
     }
   }
 
@@ -834,16 +847,33 @@ function parseLeaseFile(lines, cols, dl){
 
   const totalLeases=Object.values(LEASE_DATA).reduce((s,arr)=>s+arr.length,0);
   const totalDistricts=Object.keys(LEASE_DATA).length;
-  setSt('\u2713 '+totalDistricts+' districts \u00b7 '+totalLeases+' active building corp leases loaded');
+  setSt('\u2713 '+totalDistricts+' districts \u00b7 '+totalLeases+' active leases loaded');
 
-  // If debt data already loaded, merge in
-  if(ALL.length>0){
+  // Determine if ALL contains real debt data (not sample) by checking if any
+  // district ID exists in both ALL and LEASE_DATA
+  const realDebtLoaded=ALL.length>0&&ALL.some(d=>LEASE_DATA[d.id]);
+
+  if(realDebtLoaded){
+    // Debt already loaded with real IDs — just merge leases in
     mergeLeaseData();
-    const d=ALL.find(x=>x.id===SEL);
-    if(d)renderD(d);
-    renderOv();
-    renderSB();
+    SEL=null;
+    buildCF();onSearch();renderOv();renderSB();
     setTimeout(closeModal,1800);
+  } else {
+    // No real debt data yet — build district list from leases alone
+    // so user can see the data immediately; debt file can be added later
+    const distFromLeases=Object.entries(leaseByUID).map(([uid,data])=>({
+      id:uid,
+      name:data.name||'Unknown',
+      county:data.county||'',
+      totalAV:0,debtServiceRate:0,
+      bonds:Object.values(data.bonds),
+    }));
+    ALL=distFromLeases;
+    SEL=null;
+    buildCF();onSearch();renderOv();renderSB();
+    setSt('\u2713 '+totalDistricts+' districts \u00b7 '+totalLeases+' leases \u00b7 Now load the Debt file to add GO Bond data');
+    // Don't auto-close — user needs to load debt file too
   }
 }
 
